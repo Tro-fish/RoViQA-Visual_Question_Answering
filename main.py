@@ -15,16 +15,16 @@ from tqdm.auto import tqdm
 
 train_df = pd.read_csv('datasets/dacon/train.csv')
 test_df = pd.read_csv('datasets/dacon/test.csv')
-sample_submission = pd.read_csv('sample_submission.csv')
-train_img_path = 'dacon/image/train'
-test_img_path = 'dacon/image/test'
+sample_submission = pd.read_csv('datasets/dacon/sample_submission.csv')
+train_img_path = 'datasets/dacon/image/train'
+test_img_path = 'datasets/dacon/image/test'
 
 # dataset & dataloader
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 vocab_size = len(tokenizer)
 train_dataset = VQADataset(train_df, tokenizer, train_img_path, is_test=False)
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
 
 # device
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -39,13 +39,13 @@ optimizer = optim.AdamW(model.parameters(), lr=5e-5)
 
 # Training loop
 for epoch in range(3):
-    avg_loss = model.train_model(model, train_loader, optimizer, criterion)
+    avg_loss = model.train_model(train_loader, optimizer, criterion, device)
     print(f"Epoch: {epoch+1}, Loss: {avg_loss:.4f}")
 
 
 # Dataset & DataLoader
 test_dataset = VQADataset(test_df, tokenizer, test_img_path, is_test=True)
-test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
 
 # inference
 preds = model.inference(model, test_loader)
