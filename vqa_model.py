@@ -28,7 +28,9 @@ class VQAModel(nn.Module):
         output = self.classifier(combined) # [batch, vocab_size]
         return output
     
-    def train_model(self, loader, optimizer, criterion, device, num_epochs=1):
+    def train_model(self, loader, val_loader, optimizer, criterion, device, num_epochs=1, save_path='best_model.pth'):
+        best_accuracy = 0.0
+
         for epoch in range(num_epochs):
             self.train()  # 모델을 학습 모드로 전환
             total_loss = 0
@@ -53,8 +55,20 @@ class VQAModel(nn.Module):
 
                 print(f"Epoch [{epoch+1}/{num_epochs}], Batch Loss: {loss.item()}")
 
-            avg_loss = total_loss / len(loader)  # 평균 손실 계산
+            # 평균 손실 계산
+            avg_loss = total_loss / len(loader)  
             print(f"Epoch [{epoch+1}/{num_epochs}], Average Loss: {avg_loss}")
+
+            # Validation 정확도 계산
+            val_accuracy = self.validate_model(val_loader, device)
+            print(f"Validation Accuracy: {val_accuracy:.4f}")
+
+            # 가장 높은 정확도일 경우 모델 저장
+            if val_accuracy > best_accuracy:
+                best_accuracy = val_accuracy
+                torch.save(self.state_dict(), save_path)
+                print(f"New best model saved with accuracy: {val_accuracy:.4f}")
+
     
     def validate_model(self, loader, device):
         self.eval()

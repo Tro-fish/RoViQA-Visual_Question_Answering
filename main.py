@@ -26,12 +26,12 @@ vocab_size = len(tokenizer)
 # dataset 생성
 dataset = VQADataset(train_df, tokenizer, train_img_path, is_test=False)
 
-# train/validation split
+# train/validation split 9:1
 train_size = int(0.9 * len(dataset))
 val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-# dataloader 설정
+# train & validation dataloader
 train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=128, shuffle=False)
 
@@ -41,19 +41,15 @@ print(f"current device is {device}")
 
 # Model
 model = VQAModel(vocab_size).to(device)
+# 학습된 모델 불러오기
+# model.load_state_dict(torch.load('best_model.pth', map_location=device)).to(device)
 
 # Criterion and Optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.AdamW(model.parameters(), lr=5e-5)
 
 # Training loop
-for epoch in range(1):
-    model.train_model(train_loader, optimizer, criterion, device, num_epochs=1)
-
-    # Validation 정확도 계산
-    val_accuracy = model.validate_model(val_loader, device)
-    print(f"Validation Accuracy: {val_accuracy:.4f}")
-
+model.train_model(train_loader, val_loader, optimizer, criterion, device, num_epochs=5)
 
 # Dataset & DataLoader
 test_dataset = VQADataset(test_df, tokenizer, test_img_path, is_test=True)
