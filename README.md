@@ -1,6 +1,6 @@
 <div align="center">
 
-# Open-ended Visual-Question Answering
+# (Open-ended) Visual-Question Answering
 
 ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
@@ -10,5 +10,5 @@
 
 ## Model Architecture
 <p align="center">
-  <img src="https://github.com/Tro-fish/Visual-Question-Answering/assets/79634774/218f9279-c793-49ca-a0e2-db6f84508f43" alt="Description of the image" width="100%" />
+  <img src="https://github.com/Tro-fish/Visual-Question-Answering/assets/79634774/f7d0eb20-f3b4-4f69-880d-d412ed32ab68" alt="Description of the image" width="100%" />
 </p>
