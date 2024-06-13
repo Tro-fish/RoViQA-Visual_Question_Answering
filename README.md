@@ -13,3 +13,21 @@ This repository contains the code for a Visual Question Answering (VQA) model. T
 <p align="center">
   <img src="https://github.com/Tro-fish/Visual-Question-Answering/assets/79634774/f7d0eb20-f3b4-4f69-880d-d412ed32ab68" alt="Description of the image" width="100%" />
 </p>
+
+## Table of Contents
+- [Existing Code](#existing-code)
+- [Training Details and Evaluation Results](#training-details-and-evaluation-results)
+- [How to Train](#how-to-train)
+- [How to Perform Inference](#how-to-perform-inference)
+- [Hyperparameters](#hyperparameters)
+- [Model Parameters](#model-parameters)
+- [Machine Environment](#machine-environment)
+
+## Existing Code
+
+- **vqa_model.py**: Definition of the VQA model architecture.
+- **train.py**: Script to train the VQA model.
+- **inference.py**: Script to perform inference using the trained VQA model.
+- **parser.py**: Utility script to parse command-line arguments for training and inference.
+- **vqa_dataset.py**: Script to handle the dataset loading and preprocessing.
+- **vqa_model.py**: Definition of the VQA model architecture.
