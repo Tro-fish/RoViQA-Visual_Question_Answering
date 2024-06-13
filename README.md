@@ -50,7 +50,7 @@ Machine Environment
 	•	GPU: RTX 3090
 	•	RAM: 64GB
  
-### Inference UDOP model
+### Inference VQA model
 - **To perform inference using the trained model, use the inference.py script. You need to specify the model path, image path, and the annotation text**
 ```
 python inference.py --image_model_path image_model.pth --text_model_path text_model.pth --image_path your_image.jpg --annotation_text "Your question"
