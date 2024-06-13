@@ -54,7 +54,7 @@ class VQAModel(nn.Module):
         
         return output
     
-    def train_model(self, loader, val_loader, optimizer, criterion, device, num_epochs=1):
+    def train_model(self, loader, val_loader, optimizer, criterion, scheduler, device, num_epochs=1):
         best_accuracy = 0.0
 
         for epoch in range(num_epochs):
@@ -77,6 +77,7 @@ class VQAModel(nn.Module):
 
                 loss.backward()
                 optimizer.step()
+                scheduler.step()
 
                 print(f"Epoch [{epoch+1}/{num_epochs}], Batch Loss: {loss.item()}")
 

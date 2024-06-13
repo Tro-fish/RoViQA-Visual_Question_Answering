@@ -3,14 +3,10 @@ import torch
 import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
-import torchvision.models as models # 이미지
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision import transforms
-from PIL import Image
-from transformers import BertTokenizer # 텍스트
+from torch.utils.data import DataLoader, random_split
+from transformers import BertTokenizer, get_cosine_schedule_with_warmup
 from vqa_dataset import VQADataset
 from vqa_model import VQAModel
-from tqdm.auto import tqdm
    
 
 train_df = pd.read_csv('/home/wani/Desktop/Temp/Visual-Question-Answering/datasets/dacon/train.csv')
@@ -24,15 +20,15 @@ tokenizer = BertTokenizer.from_pretrained('google-bert/bert-base-uncased')
 vocab_size = len(tokenizer)
 # dataset 생성
 dataset = VQADataset(train_df, tokenizer, train_img_path, is_test=False)
-
+batch_size = 112
 # train/validation split 9:1
 train_size = int(0.9 * len(dataset))
 val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 # train & validation dataloader
-train_loader = DataLoader(train_dataset, batch_size=112, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=112, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size, shuffle=False)
 
 # device
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -53,9 +49,12 @@ model.to(device)
 # Criterion and Optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.AdamW(model.parameters(), lr=5e-5, weight_decay=0.01)
+num_epochs = 5
+total_steps = len(train_loader) * num_epochs // batch_size
+scheduler = get_cosine_schedule_with_warmup(optimizer, total_steps//10, num_training_steps=total_steps)
 
 # Training loop
-model.train_model(train_loader, val_loader, optimizer, criterion, device, num_epochs=5)
+model.train_model(train_loader, val_loader, optimizer, criterion, scheduler, device, num_epochs)
 
 # Dataset & DataLoader
 test_dataset = VQADataset(test_df, tokenizer, test_img_path, is_test=True)
