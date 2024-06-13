@@ -33,23 +33,23 @@ class VQAModel(nn.Module):
     def __init__(self, vocab_size):
         super(VQAModel, self).__init__()
         
-        self.bert = BertModel.from_pretrained('google-bert/bert-base-uncased')
+        self.bert = BertModel.from_pretrained('FacebookAI/roberta-base')
         self.vit = ViTModel.from_pretrained('google/vit-base-patch16-224')
-        self.fcnn = FCNN(self.bert.config.hidden_size, [512, 256], vocab_size)
+        self.fcnn = FCNN(self.bert.config.hidden_size, [1024, 512, 256], vocab_size)
 
     def forward(self, images, question):
-        # ViT에서 CLS 토큰 추출
+        # Extracting CLS tokens from ViT
         vit_outputs = self.vit(images)
         cls_token = vit_outputs.last_hidden_state[:, 0, :]  # [batch_size, hidden_size]
 
-        # BERT에서 질문 시퀀스 처리
+        # Processing question sequences in BERT
         outputs = self.bert(**question)
         question_features = outputs.last_hidden_state  # [batch_size, sequence_length, hidden_size]
 
-        # CLS 토큰을 모든 질문 시퀀스에 element-wise 곱
+        # Multiply CLS tokens element-wise by all question sequences
         combined = cls_token.unsqueeze(1) * question_features  # [batch_size, sequence_length, hidden_size]
 
-        # FCNN을 통한 최종 출력
+        # Final output via FCNN
         output = self.fcnn(combined)  # [batch_size, sequence_length, vocab_size]
         
         return output
@@ -58,7 +58,7 @@ class VQAModel(nn.Module):
         best_accuracy = 0.0
 
         for epoch in range(num_epochs):
-            self.train()  # 모델을 학습 모드로 전환
+            self.train()  
             total_loss = 0
             batch_losses = []
 
@@ -89,8 +89,8 @@ class VQAModel(nn.Module):
 
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
-                torch.save(self.vit.state_dict(), "best_image_model.pth")
-                torch.save(self.bert.state_dict(), "best_text_model.pth")
+                # save model
+                torch.save(self.state_dict(), "best_vqa_model.pth")
                 print(f"New best model saved with accuracy: {val_accuracy:.4f}")
 
     def validate_model(self, loader, device):

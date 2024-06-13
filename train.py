@@ -4,23 +4,25 @@ import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, random_split
-from transformers import BertTokenizer, get_cosine_schedule_with_warmup
+from transformers import AutoTokenizer, get_cosine_schedule_with_warmup
 from vqa_dataset import VQADataset
 from vqa_model import VQAModel
-   
+from parser import train_parse_args
 
-train_df = pd.read_csv('/home/wani/Desktop/Temp/Visual-Question-Answering/datasets/dacon/train.csv')
-test_df = pd.read_csv('/home/wani/Desktop/Temp/Visual-Question-Answering/datasets/dacon/test.csv')
+args = train_parse_args()
+
+train_annotations = pd.read_csv(args.train_annotation_path)
+test_annotations = pd.read_csv(args.test_annotation_path)
 sample_submission = pd.read_csv('/home/wani/Desktop/Temp/Visual-Question-Answering/datasets/dacon/sample_submission.csv')
-train_img_path = '/home/wani/Desktop/Temp/Visual-Question-Answering/datasets/dacon/image/train'
-test_img_path = '/home/wani/Desktop/Temp/Visual-Question-Answering/datasets/dacon/image/test'
+train_img_path = args.train_img_path
+test_img_path = args.test_img_path
 
 # dataset & dataloader
-tokenizer = BertTokenizer.from_pretrained('google-bert/bert-base-uncased')
+tokenizer = AutoTokenizer.from_pretrained('FacebookAI/roberta-base')
 vocab_size = len(tokenizer)
-# dataset 생성
-dataset = VQADataset(train_df, tokenizer, train_img_path, is_test=False)
-batch_size = 112
+# Create a dataset
+dataset = VQADataset(train_annotations, tokenizer, train_img_path, is_test=False)
+batch_size = args.batch_size
 # train/validation split 9:1
 train_size = int(0.9 * len(dataset))
 val_size = len(dataset) - train_size
@@ -36,20 +38,12 @@ print(f"current device is {device}")
 
 # Model
 model = VQAModel(vocab_size)
-# google-bert/bert-base-uncased --> 110M
-# google/vit-base-patch16-224 --> 86M
-# ourt vqa_model --> 205M
-
-# 학습된 모델 불러오기
-# model.vit.load_state_dict(torch.load("best_image_model.pth", map_location=device))
-# model.bert.load_state_dict(torch.load("best_text_model.pth", map_location=device))
-
 model.to(device)
 
 # Criterion and Optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.AdamW(model.parameters(), lr=5e-5, weight_decay=0.01)
-num_epochs = 5
+optimizer = optim.AdamW(model.parameters(), lr = args.lr, weight_decay = args.weight_decay)
+num_epochs = args.num_epochs
 total_steps = len(train_loader) * num_epochs // batch_size
 scheduler = get_cosine_schedule_with_warmup(optimizer, total_steps//10, num_training_steps=total_steps)
 
@@ -57,8 +51,8 @@ scheduler = get_cosine_schedule_with_warmup(optimizer, total_steps//10, num_trai
 model.train_model(train_loader, val_loader, optimizer, criterion, scheduler, device, num_epochs)
 
 # Dataset & DataLoader
-test_dataset = VQADataset(test_df, tokenizer, test_img_path, is_test=True)
-test_loader = DataLoader(test_dataset, batch_size=112, shuffle=False)
+test_dataset = VQADataset(test_annotations, tokenizer, test_img_path, is_test=True)
+test_loader = DataLoader(test_dataset, batch_size, shuffle=False)
 
 # inference
 preds = model.inference(test_loader, device)
@@ -70,4 +64,3 @@ for pred in preds:
 
 sample_submission['answer'] = no_pad_output
 sample_submission.to_csv('submission.csv', index=False)
-solution = pd.read_csv('solution.csv')
