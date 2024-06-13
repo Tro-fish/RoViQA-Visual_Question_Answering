@@ -1,34 +1,60 @@
 import torch
 import torch.nn as nn
-import torchvision.models as models # 이미지
-from transformers import GPT2Tokenizer, GPT2Model # 텍스트
+from transformers import BertModel, ViTModel
 from tqdm import tqdm
 
+class FCNN(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super(FCNN, self).__init__()
+        self.layers = nn.ModuleList()
+        
+        # Input layer
+        self.layers.append(nn.Linear(input_size, hidden_sizes[0]))
+        
+        # Hidden layers
+        for i in range(len(hidden_sizes) - 1):
+            self.layers.append(nn.Linear(hidden_sizes[i], hidden_sizes[i + 1]))
+        
+        # Output layer
+        self.layers.append(nn.Linear(hidden_sizes[-1], output_size))
+        
+        # Activation function
+        self.activation = nn.ReLU()
+    
+    def forward(self, x):
+        for layer in self.layers[:-1]:
+            x = self.activation(layer(x))
+        
+        # Output layer without activation
+        x = self.layers[-1](x)
+        return x
 
 class VQAModel(nn.Module):
     def __init__(self, vocab_size):
         super(VQAModel, self).__init__()
-        self.vocab_size = vocab_size
-
-        self.resnet = models.resnet50(pretrained=True)
-        self.gpt2 = GPT2Model.from_pretrained('gpt2')
-        self.gpt2.resize_token_embeddings(vocab_size) # 추가한 [PAD] 토큰 반영
-
-        combined_features_size = 1000 + self.gpt2.config.hidden_size # resnet 출력 차원 + gpt2 출력 차원
-        self.classifier = nn.Linear(combined_features_size, vocab_size)
+        
+        self.bert = BertModel.from_pretrained('google-bert/bert-base-uncased')
+        self.vit = ViTModel.from_pretrained('google/vit-base-patch16-224')
+        self.fcnn = FCNN(self.bert.config.hidden_size, [512, 256], vocab_size)
 
     def forward(self, images, question):
-        image_features = self.resnet(images) # [batch_size, 1000]
-        outputs = self.gpt2(question)
-        output_features = outputs.last_hidden_state # [batch_size, sequence_length, hidden_size]
+        # ViT에서 CLS 토큰 추출
+        vit_outputs = self.vit(images)
+        cls_token = vit_outputs.last_hidden_state[:, 0, :]  # [batch_size, hidden_size]
 
-        image_features = image_features.unsqueeze(1).expand(-1, output_features.size(1),-1) # [batch, sequence, 1000]
+        # BERT에서 질문 시퀀스 처리
+        outputs = self.bert(**question)
+        question_features = outputs.last_hidden_state  # [batch_size, sequence_length, hidden_size]
 
-        combined = torch.cat([image_features, output_features], dim=-1) # [batch, sequence, 1000+hidden]
-        output = self.classifier(combined) # [batch, vocab_size]
+        # CLS 토큰을 모든 질문 시퀀스에 element-wise 곱
+        combined = cls_token.unsqueeze(1) * question_features  # [batch_size, sequence_length, hidden_size]
+
+        # FCNN을 통한 최종 출력
+        output = self.fcnn(combined)  # [batch_size, sequence_length, vocab_size]
+        
         return output
     
-    def train_model(self, loader, val_loader, optimizer, criterion, device, num_epochs=1, save_path='best_model.pth'):
+    def train_model(self, loader, val_loader, optimizer, criterion, device, num_epochs=1):
         best_accuracy = 0.0
 
         for epoch in range(num_epochs):
@@ -37,39 +63,35 @@ class VQAModel(nn.Module):
             batch_losses = []
 
             for data in tqdm(loader, total=len(loader)):
-                images = data['image'].to(device)  # 이미지 데이터를 GPU로 전송
-                question = data['question'].to(device)  # 질문 데이터를 GPU로 전송
-                answer = data['answer'].to(device)  # 정답 데이터를 GPU로 전송
+                images = data['image'].to(device)
+                question = {key: val.to(device) for key, val in data['question'].items()}
+                answer = data['answer'].to(device)
 
-                optimizer.zero_grad()  # 옵티마이저의 기울기(그래디언트)를 초기화
+                optimizer.zero_grad()
 
-                outputs = self(images, question)  # 모델의 예측값 계산
+                outputs = self(images, question)
 
-                # output: [batch_size, sequence, vocab], answer: [batch_size, sequence]
-                loss = criterion(outputs.view(-1, outputs.size(-1)), answer.view(-1))  # 손실 계산
-                total_loss += loss.item()  # 총 손실값에 현재 배치의 손실 추가
-                batch_losses.append(loss.item())  # 배치 손실 저장
+                loss = criterion(outputs.view(-1, outputs.size(-1)), answer.view(-1))
+                total_loss += loss.item()
+                batch_losses.append(loss.item())
 
-                loss.backward()  # 손실에 대한 그래디언트를 계산 (역전파)
-                optimizer.step()  # 옵티마이저를 통해 파라미터 업데이트
+                loss.backward()
+                optimizer.step()
 
                 print(f"Epoch [{epoch+1}/{num_epochs}], Batch Loss: {loss.item()}")
 
-            # 평균 손실 계산
             avg_loss = total_loss / len(loader)  
             print(f"Epoch [{epoch+1}/{num_epochs}], Average Loss: {avg_loss}")
 
-            # Validation 정확도 계산
             val_accuracy = self.validate_model(val_loader, device)
             print(f"Validation Accuracy: {val_accuracy:.4f}")
 
-            # 가장 높은 정확도일 경우 모델 저장
             if val_accuracy > best_accuracy:
                 best_accuracy = val_accuracy
-                torch.save(self.state_dict(), save_path)
+                torch.save(self.vit.state_dict(), "best_image_model.pth")
+                torch.save(self.bert.state_dict(), "best_text_model.pth")
                 print(f"New best model saved with accuracy: {val_accuracy:.4f}")
 
-    
     def validate_model(self, loader, device):
         self.eval()
         correct = 0
@@ -78,7 +100,7 @@ class VQAModel(nn.Module):
         with torch.no_grad():
             for data in tqdm(loader, total=len(loader)):
                 images = data['image'].to(device)
-                question = data['question'].to(device)
+                question = {key: val.to(device) for key, val in data['question'].items()}
                 answer = data['answer'].to(device)
 
                 outputs = self(images, question)
@@ -96,11 +118,11 @@ class VQAModel(nn.Module):
         with torch.no_grad():
             for data in tqdm(loader, total=len(loader)):
                 images = data['image'].to(device)
-                question = data['question'].to(device)
+                question = {key: val.to(device) for key, val in data['question'].items()}
 
-                outputs = self(images, question) # [batch, sequence, vocab]
+                outputs = self(images, question)
 
-                _, pred = torch.max(outputs, dim=2) # values, indices = _, pred
+                _, pred = torch.max(outputs, dim=2)
                 preds.extend(pred.cpu().numpy())
 
         return preds

@@ -8,7 +8,7 @@ from PIL import Image
 TRANSFORM = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
 ])
 
 class VQADataset(Dataset):
@@ -51,12 +51,12 @@ class VQADataset(Dataset):
             
             return {
                 'image': image.squeeze(),
-                'question': question['input_ids'].squeeze(),
+                'question': {key: val.squeeze(0) for key, val in question.items()},
                 'answer': answer['input_ids'].squeeze()
             }
         
         else:
             return {
                 'image': image,
-                'question': question['input_ids'].squeeze(),
+                'question': {key: val.squeeze(0) for key, val in question.items()},
             }
