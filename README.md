@@ -26,8 +26,7 @@ This repository contains the code for a Visual Question Answering (VQA) model. T
 ## Existing Code
 
 - **vqa_model.py**: Definition of the VQA model architecture.
+- **vqa_dataset.py**: Script to handle the dataset loading and preprocessing.
 - **train.py**: Script to train the VQA model.
 - **inference.py**: Script to perform inference using the trained VQA model.
 - **parser.py**: Utility script to parse command-line arguments for training and inference.
-- **vqa_dataset.py**: Script to handle the dataset loading and preprocessing.
-- **vqa_model.py**: Definition of the VQA model architecture.
