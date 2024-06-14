@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import BertModel, ViTModel
+from transformers import RobertaModel, ViTModel
 from tqdm import tqdm
 
 class FCNN(nn.Module):
@@ -33,7 +33,7 @@ class VQAModel(nn.Module):
     def __init__(self, vocab_size):
         super(VQAModel, self).__init__()
         
-        self.bert = BertModel.from_pretrained('FacebookAI/roberta-base')
+        self.bert = RobertaModel.from_pretrained('FacebookAI/roberta-base')
         self.vit = ViTModel.from_pretrained('google/vit-base-patch16-224')
         self.fcnn = FCNN(self.bert.config.hidden_size, [1024, 512, 256], vocab_size)
 
@@ -53,6 +53,15 @@ class VQAModel(nn.Module):
         output = self.fcnn(combined)  # [batch_size, sequence_length, vocab_size]
         
         return output
+    
+    @classmethod
+    def from_pretrained(cls, model_name_or_path, vocab_size, device):
+        model = cls(vocab_size)
+        state_dict = torch.hub.load_state_dict_from_url(f'https://huggingface.co/{model_name_or_path}/resolve/main/RoViQA.pth', map_location=device)
+        model.load_state_dict(state_dict)
+        model.to(device)
+        model.eval()
+        return model
     
     def train_model(self, loader, val_loader, optimizer, criterion, scheduler, device, num_epochs=1):
         best_accuracy = 0.0

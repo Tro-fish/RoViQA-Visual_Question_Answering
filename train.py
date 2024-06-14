@@ -13,7 +13,6 @@ args = train_parse_args()
 
 train_annotations = pd.read_csv(args.train_annotation_path)
 test_annotations = pd.read_csv(args.test_annotation_path)
-sample_submission = pd.read_csv('/home/wani/Desktop/Temp/Visual-Question-Answering/datasets/dacon/sample_submission.csv')
 train_img_path = args.train_img_path
 test_img_path = args.test_img_path
 
@@ -57,10 +56,9 @@ test_loader = DataLoader(test_dataset, batch_size, shuffle=False)
 # inference
 preds = model.inference(test_loader, device)
 pad_token_id = tokenizer.pad_token_id
-no_pad_output = []
-for pred in preds:
-    output = pred[pred != pad_token_id] # [PAD] token 제외
-    no_pad_output.append(tokenizer.decode(output).strip()) # 토큰 id -> 토큰
 
-sample_submission['answer'] = no_pad_output
-sample_submission.to_csv('submission.csv', index=False)
+for index, pred in enumerate(preds):
+    output = pred[pred != pad_token_id] 
+    prediction = tokenizer.decode(output).strip()
+    print(f"TEST_{index} prediction: {prediction}")
+    

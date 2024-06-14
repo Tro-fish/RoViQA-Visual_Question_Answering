@@ -6,6 +6,13 @@ from transformers import AutoTokenizer
 from vqa_model import VQAModel
 from parser import test_parser_args
 
+def load_model(vocab_size, device):
+    model = VQAModel(vocab_size)
+    model.load_state_dict(torch.load('models/best_vqa_model.pth', map_location=device))
+    model.to(device)
+    model.eval()
+    return model
+
 def preprocess_image(image_path):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -47,8 +54,6 @@ def extract_between_special_tokens(pred, tokenizer):
     return tokenizer.decode(filtered_tokens)
 
 def main():
-
-    args = test_parser_args()
     # Device Settings
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     
@@ -57,13 +62,13 @@ def main():
     vocab_size = len(tokenizer)
     
     # Load model
-    model = VQAModel.from_pretrained(vqa_model_path, vocab_size, device)
+    model = load_model(vocab_size, device)
     
     # Image preprocess
-    image = preprocess_image(args.image_path).to(device)
+    image = preprocess_image('/home/wani/Desktop/Visual-Question-Answering/images/apple_image.jpg').to(device)
     
     # Text preprocess
-    tokens = preprocess_text(args.annotation_text, tokenizer)
+    tokens = preprocess_text('What is the name of the fruit in the picture?', tokenizer)
     tokens = {key: val.to(device) for key, val in tokens.items()}
     
     model.eval()

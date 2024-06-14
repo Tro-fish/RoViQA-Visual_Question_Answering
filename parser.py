@@ -14,7 +14,14 @@ def train_parse_args():
 
 def test_parser_args():
     parser = argparse.ArgumentParser(description="Inference VQA Model")
-    parser.add_argument('--vqa_model_path', type=str, default='models/best_vqa_model.pth', help="Path to the trained model file")
+    
+    parser.add_argument('--vqa_model_path', type=str, default='Trofish/RoViQA', help="Path to the trained model file")
     parser.add_argument('--image_path', type=str, default='/home/wani/Desktop/Visual-Question-Answering/images/apple_image.jpg', help="Path to the image file")
-    parser.add_argument('--annotation_text', type=str, default="What is the object in this picture?", help="Annotation text for the image")
+    parser.add_argument('--annotation_text', type=str, default='What is the name of the fruit in the picture?', help="Annotation text for the image")
     return parser.parse_args()
+
+# /home/wani/Desktop/Temp/Visual-Question-Answering/datasets/dacon/image/test/test_00003.jpg
+# What color are the cabinets?
+
+# /home/wani/Desktop/Visual-Question-Answering/images/apple_image.jpg
+# What is the name of the fruit in the picture?
