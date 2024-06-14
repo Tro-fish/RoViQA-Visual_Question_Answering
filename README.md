@@ -66,7 +66,7 @@ Machine Environment
 ### Inference RoViQA
 - **To perform inference using the trained model, use the inference.py script. You need to specify the model path, image path, and the annotation text**
 - I've put a test image in the images folder, so you're good to go.
-- I've uploaded my trained model to HuggingFace, ready for you to use.
+- I've uploaded my trained model to [HuggingFace](https://huggingface.co/Trofish/RoViQA), ready for you to use.
 ```
 python inference.py —image_model_path image_model.pth —text_model_path text_model.pth —image_path your_image.jpg —annotation_text "Your question"
 ```
