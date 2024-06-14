@@ -70,3 +70,8 @@ Machine Environment
 ```
 python inference.py —vqa_model_path text_model.pth —image_path your_image.jpg —annotation_text "Your question"
 ```
+
+If you have any question feel free to contact me
+```
+waniboyy@gmail.com
+```
