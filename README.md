@@ -68,5 +68,5 @@ Machine Environment
 - I've put a test image in the images folder, so you're good to go.
 - I've uploaded my trained model to [HuggingFace](https://huggingface.co/Trofish/RoViQA), ready for you to use.
 ```
-python inference.py —image_model_path image_model.pth —text_model_path text_model.pth —image_path your_image.jpg —annotation_text "Your question"
+python inference.py —vqa_model_path text_model.pth —image_path your_image.jpg —annotation_text "Your question"
 ```
